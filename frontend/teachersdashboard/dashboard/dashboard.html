@@ -1,31 +1,153 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Teacher's Dashboard</title>
-        <meta content="opening page for dashboard" name="Description">
-        <meta name="author" content="navabhaarathi">
-        <meta name="viewport" content="width=device-width,initial-scale=1"> 
-        <link rel="stylesheet" href="styles.css">
-        <script src="script.js"></script>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher's Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            height: 100vh;
+            background-color: #f4f6f9;
+        }
+        .dashboard {
+            height: calc(100% - 60px); /* Adjust height to account for button spacing */
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 10px;
+            background-color: #f8f9fa;
+            text-align: center;
+            position: relative;
+            margin-bottom: 10px;
+        }
+        .badge {
+            font-size: 0.9rem;
+            margin-left: 10px;
+        }
+        table {
+            margin: 0 auto;
+            width: 90%;
+        }
+        thead th {
+            background-color: #007bff;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        tbody tr:hover {
+            background-color: #e9ecef;
+            cursor: pointer;
+        }
+        .custom-checkbox {
+            width: 20px;
+            height: 20px;
+            accent-color: #007bff;
+            cursor: pointer;
+        }
+        .notes {
+            text-align: center;
+            font-size: 0.9rem;
+            margin-top: 20px;
+            color: #6c757d;
+        }
+        .button-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .btn-view {
+            margin: 5px;
+            width: 80%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid h-100">
+        <div class="row dashboard">
+            <!-- True Section -->
+            <div class="col-md-6 border-end">
+                <div class="section-title text-success">
+                    True Questions 
+                    <span class="badge bg-success">2</span>
+                </div>
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            <th>Answer</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>What is AI?</td>
+                            <td>Artificial Intelligence</td>
+                            <td class="text-center">
+                                <input type="checkbox" class="custom-checkbox" checked>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Define Machine Learning?</td>
+                            <td>A subset of AI</td>
+                            <td class="text-center">
+                                <input type="checkbox" class="custom-checkbox">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <!-- True Button -->
+                <div class="button-section">
+                    <button class="btn btn-success btn-view">View Full True Questions Table</button>
+                </div>
+            </div>
 
-
-    </head>
-    <body>
-        <h1>Teacher's Dashboard</h1>
-        <div class="row">
-            <div class=".col-xl" style="padding-top: 10px;">
-                <h3> Rag Answering Questions</h3>
-                
-
-            </div>>
-            <div class=".col-xl" style="padding-top: 10px;">
-                <h3> Teacher Addressing Questions</h3>
-
+            <!-- False Section -->
+            <div class="col-md-6">
+                <div class="section-title text-danger">
+                    False Questions 
+                    <span class="badge bg-danger">2</span>
+                </div>
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            <th>Answer</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Is the earth flat?</td>
+                            <td>No</td>
+                            <td class="text-center">
+                                <input type="checkbox" class="custom-checkbox" checked>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Can AI replace humans?</td>
+                            <td>Not completely</td>
+                            <td class="text-center">
+                                <input type="checkbox" class="custom-checkbox">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <!-- False Button -->
+                <div class="button-section">
+                    <button class="btn btn-danger btn-view">View Full False Questions Table</button>
+                </div>
             </div>
         </div>
-        
+        <!-- Notes Section -->
+        <div class="notes">
+            <p>Check/uncheck the boxes to mark the question status. Click "View Full Table" for detailed views.</p>
+        </div>
+    </div>
 
-    </body>
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
