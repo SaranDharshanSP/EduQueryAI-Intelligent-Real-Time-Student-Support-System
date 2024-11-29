@@ -1,167 +1,40 @@
 import os
 import streamlit as st
-from langchain.schema import AIMessage, HumanMessage
-from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
+from PyPDF2 import PdfReader
 from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
-from PyPDF2 import PdfReader
+from langchain.schema import AIMessage, HumanMessage
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from dotenv import load_dotenv
 
-# Load environment variables
+
 load_dotenv()
-
-# Paths and settings
-PDF_FOLDER = './pdfs'
-index_path = "faiss_index"  # Path for saving FAISS index
-
-# Load OpenAI embeddings
 embeddings = OpenAIEmbeddings()
+# Directory for storing PDFs and FAISS index
+UPLOAD_FOLDER = 'teacher_pdfs'
+INDEX_PATH = "faiss_index"
 
-# Sample usernames and passwords for student and teacher
-sample_users = {
-    "student": {"username": "student123", "password": "studentpass"},
-    "teacher": {"username": "teacher123", "password": "teacherpass"},
+# Ensure the upload folder exists
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+# Dummy database for users
+users = {
+    "student": {"username": "st1", "password": "pass"},
+    "teacher": {"username": "te1", "password": "pass"}
 }
 
-# Streamlit page configuration
-st.set_page_config(page_title="EduQueryAI - Real-Time Student Support", page_icon='📚')
+# Function to check login credentials
+def check_login(username, password, role):
+    return users.get(role) and users[role]["username"] == username and users[role]["password"] == password
 
-# Check if the session state for user role is already set, if not, default to None
-if 'role' not in st.session_state:
-    st.session_state['role'] = None
+# Function to check if a vector index already exists
+def check_existing_index(index_path):
+    return os.path.exists(index_path)
 
-# Check if the user is already logged in
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
-# Login page for student/teacher
-def login_page():
-    if not st.session_state['logged_in']:  # Only show login page if not logged in
-        st.header("Login to EduQueryAI")
-        role = st.radio("Choose your role", ["Student", "Teacher"])
-        username = st.text_input("Enter your Username")
-        password = st.text_input("Enter your Password", type="password")
-        
-        if st.button("Login"):
-            if username and password:
-                if validate_credentials(role, username, password):
-                    st.session_state['role'] = role.lower()
-                    st.session_state['logged_in'] = True
-                    st.session_state['username'] = username  # Save username to session state
-                    st.experimental_rerun()  # Rerun the script to show the dashboard
-                else:
-                    st.error("Invalid username or password.")
-            else:
-                st.error("Please enter both username and password.")
-    else:
-        if st.session_state['role'] == 'student':
-            student_dashboard()
-        elif st.session_state['role'] == 'teacher':
-            teacher_dashboard()
-
-# Validate credentials
-def validate_credentials(role, username, password):
-    if role.lower() == "student":
-        return sample_users["student"]["username"] == username and sample_users["student"]["password"] == password
-    elif role.lower() == "teacher":
-        return sample_users["teacher"]["username"] == username and sample_users["teacher"]["password"] == password
-    return False
-
-# Teacher dashboard
-def teacher_dashboard():
-    st.sidebar.title("Teacher Dashboard")
-    st.sidebar.button("Logout", on_click=logout)
-    
-    st.header("Teacher Dashboard")
-    st.write("Coming Soon! Teacher's page under construction.")
-    
-    # Future features like query management, uploading course material, etc.
-    # Placeholder content for Teacher role
-
-# Student dashboard
-def student_dashboard():
-    st.sidebar.title("Student Dashboard")
-    st.sidebar.button("Logout", on_click=logout)
-    
-    st.header("Student Dashboard")
-    
-    # Display chat history from session state
-    if "chat_history" not in st.session_state:
-        st.session_state["chat_history"] = [
-            AIMessage(content="Hello there👋, I can help you with your PDFs. Upload any PDF and we can chat.")
-        ]
-    
-    for message in st.session_state.chat_history:
-        if isinstance(message, AIMessage):
-            with st.chat_message('AI'):
-                st.info(message.content)
-        elif isinstance(message, HumanMessage):
-            with st.chat_message("Human"):
-                st.markdown(message.content)
-
-    # User input section for asking questions
-    user_question = st.chat_input("Ask me anything about the course material!")
-    if user_question:
-        st.session_state.chat_history.append(HumanMessage(content=user_question))
-
-        with st.chat_message("Human"):
-            st.markdown(user_question)
-
-        # Get AI response based on user's question
-        response, context = user_input(user_question)
-
-        with st.chat_message("AI"):
-            st.write(response)
-
-        # Save AI's response in the chat history
-        st.session_state.chat_history.append(AIMessage(content=response))
-
-# Function to handle user input and get a response
-def user_input(user_question):
-    # Load existing knowledge base or create a new one
-    if os.path.exists(index_path):
-        new_db = FAISS.load_local(index_path, embeddings=embeddings, allow_dangerous_deserialization=True)
-    else:
-        st.warning("No knowledge base found. Creating one from uploaded PDFs...")
-        create_faiss_index()
-        new_db = FAISS.load_local(index_path, embeddings=embeddings, allow_dangerous_deserialization=True)
-
-    # Search for relevant documents based on the user's question
-    docs = new_db.similarity_search(user_question)
-    chain = get_conversational_chain(new_db)
-
-    context_text = " ".join([doc.page_content for doc in docs])
-
-    # Get AI response based on the question and context
-    result = chain.invoke({
-        "question": user_question,
-        'context': docs,
-        "chat_history": '',
-    })
-
-    return result['answer'], context_text
-
-# Function to create FAISS index from uploaded PDFs
-def create_faiss_index():
-    # Handle PDF upload and text extraction
-    pdf_docs = st.file_uploader(
-        "Upload your PDF File(s) and Click on the Submit & Process Button",
-        type="pdf", accept_multiple_files=True
-    )
-    if st.button("Submit & Process"):
-        if pdf_docs:
-            with st.spinner("Processing PDFs..."):
-                raw_text = get_pdf_text(pdf_docs)
-                text_chunks = get_text_chunks(raw_text)
-                vector_store = FAISS.from_texts(text_chunks, embeddings)
-                vector_store.save_local(index_path)
-                st.success("Knowledge base created successfully!")
-        else:
-            st.warning("Please upload at least one PDF file.")
-
-# Function to extract text from PDFs
+# Function to get text from uploaded PDF files
 def get_pdf_text(pdf_docs):
     text = ""
     for pdf in pdf_docs:
@@ -170,39 +43,177 @@ def get_pdf_text(pdf_docs):
             text += page.extract_text()
     return text
 
-# Function to split text into chunks
-def get_text_chunks(raw_text):
-    chunk_size = 200
-    chunk_overlap = 100
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    return text_splitter.split_text(raw_text)
+# Function to split the text into chunks for vector store
+def get_text_chunks(text):
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=200, chunk_overlap=100)
+    chunks = text_splitter.split_text(text)
+    return chunks
 
-# Function to return the Conversational Retrieval Chain
+# Function to create and save a vector store from text chunks
+def get_vector_store(text_chunks):
+    embeddings = OpenAIEmbeddings()
+    vector_store = FAISS.from_texts(text_chunks, embeddings)
+    vector_store.save_local(INDEX_PATH)
+
+# Function to create a conversational retrieval chain for answering questions
 def get_conversational_chain(vectorstore):
     prompt_template = """
-    System: You are an expert on networking topics, and your task is to answer the user's questions strictly based on the information provided in the uploaded PDF documents. Here are your guidelines:
+    System: You are a highly knowledgeable tutor, specializing in explaining the content of specific documents provided by the user. Your task is to help the user understand and learn from the documents they have uploaded, strictly using only the information provided therein. Here are your guidelines:
 
-    - Use only the information from the user's uploaded PDF documents to determine the answer.
-    - If the correct answer is not directly available in the provided information, respond with 'This will be answered by the Teacher.'
-    - Keep your response concise and relevant to the user's question.
+    - Use only information from the user's uploaded PDF documents to answer questions.
+    - If the question relates to information not covered in the PDFs, politely inform the user that the required information is not available in the uploaded documents.
+    - Cite specific sections or pages from the PDFs when relevant to provide detailed and precise answers.
+    - Encourage the user to explore related concepts within the PDFs to enhance understanding.
+    - Maintain a professional tone and focus on educational support.
+
+    Chat History:
+    {chat_history}
 
     Context from Documents:
     {context}
 
-    User: {question}
+    User's Question:
+    {question}
 
-    Assistant: 
+    Your Response:
     """
-    prompt = PromptTemplate.from_template(prompt_template)
-    llm = ChatOpenAI(model="gpt-4")  # Specify the LLM model you want to use (can be gpt-3.5 or gpt-4)
-    return ConversationalRetrievalChain.from_llm(llm, vectorstore.as_retriever(), verbose=True)
 
-# Logout function
-def logout():
-    st.session_state['logged_in'] = False
-    st.session_state['role'] = None
-    st.session_state['username'] = None
-    st.experimental_rerun()  # Rerun the app to show the login page
+    prompt = PromptTemplate(
+        input_variables=["chat_history", "context", "question"],
+        template=prompt_template
+    )
 
-# Main function to display login page or dashboard
-login_page()
+    llm = ChatOpenAI(model_name="gpt-4o", temperature=0.1)
+    retriever = vectorstore.as_retriever()
+
+    chain = ConversationalRetrievalChain.from_llm(
+        llm=llm,
+        retriever=retriever,
+        combine_docs_chain_kwargs={'prompt': prompt},
+        verbose=True
+    )
+    return chain
+
+# Function to handle login and role selection
+def handle_login():
+    if 'logged_in' not in st.session_state:
+        st.session_state.logged_in = False
+        st.session_state.role = None
+
+    st.sidebar.header("Login")
+
+    # Select role (Student or Teacher)
+    selected_role = st.sidebar.selectbox("Select Role", ["Select Role", "Student", "Teacher"])
+
+    if selected_role != "Select Role" and not st.session_state.logged_in:
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        login_button = st.button("Login")
+
+        if login_button:
+            if check_login(username, password, selected_role.lower()):
+                st.session_state.logged_in = True
+                st.session_state.role = selected_role.lower()
+                st.success(f"Welcome, {selected_role}!")
+            else:
+                st.error("Invalid credentials. Please try again.")
+    
+    # Handle logout
+    if st.session_state.logged_in:
+        logout_button = st.sidebar.button("Logout")
+        if logout_button:
+            st.session_state.logged_in = False
+            st.session_state.role = None
+            st.experimental_rerun()
+
+# Teacher dashboard: Upload PDFs, process and store them
+def teacher_dashboard():
+    st.subheader("Teacher Dashboard")
+    st.write("Welcome to EduQuery AI - Teacher Dashboard")
+    st.write("Here, you can upload PDF documents and manage the content.")
+
+    # File upload for teacher
+    uploaded_files = st.file_uploader("Upload PDF(s)", type="pdf", accept_multiple_files=True)
+
+    if uploaded_files:
+        # Save uploaded PDFs to the folder
+        for pdf in uploaded_files:
+            file_path = os.path.join(UPLOAD_FOLDER, pdf.name)
+            with open(file_path, "wb") as f:
+                f.write(pdf.getbuffer())
+        
+        # Process the PDFs and create the vector store
+        if st.button("Submit & Process PDFs"):
+            raw_text = get_pdf_text(uploaded_files)
+            text_chunks = get_text_chunks(raw_text)
+            get_vector_store(text_chunks)
+            st.success("PDFs processed successfully! Knowledge base created.")
+
+    # Display uploaded files
+    uploaded_files_list = os.listdir(UPLOAD_FOLDER)
+    if uploaded_files_list:
+        st.write("Uploaded PDF Files:")
+        for file in uploaded_files_list:
+            st.write(file)
+    
+    # Button to delete all uploaded PDFs
+    if st.button("Delete All PDFs"):
+        for file in uploaded_files_list:
+            os.remove(os.path.join(UPLOAD_FOLDER, file))
+        st.success("All PDFs have been deleted successfully!")
+
+# Student dashboard: Ask questions based on uploaded PDFs
+def student_dashboard():
+    st.subheader("Student Dashboard")
+    st.write("Welcome to EduQuery AI - Student Dashboard")
+    st.write("You can ask questions based on the PDFs uploaded by the teacher.")
+    
+    # Check if vector store exists
+    if check_existing_index(INDEX_PATH):
+        # Load the existing index
+        vector_store = FAISS.load_local(INDEX_PATH,embeddings=embeddings,allow_dangerous_deserialization=True)
+        chain = get_conversational_chain(vector_store)
+
+        # Initialize chat history if not present
+        if "chat_history" not in st.session_state:
+            st.session_state["chat_history"] = []
+
+        # Display chat history
+        for message in st.session_state.chat_history:
+            if isinstance(message, AIMessage):
+                with st.chat_message('AI'):
+                    st.info(message.content)
+            elif isinstance(message, HumanMessage):
+                with st.chat_message("Human"):
+                    st.markdown(message.content)
+
+        # User input for asking questions
+        user_question = st.chat_input("Ask a question related to the PDFs")
+
+        if user_question:
+            st.session_state.chat_history.append(HumanMessage(content=user_question))
+            with st.chat_message("Human"):
+                st.markdown(user_question)
+
+            # Get the AI's response based on the uploaded PDFs
+            response = chain.run(question=user_question,context=vector_store, chat_history=st.session_state.chat_history)
+            st.session_state.chat_history.append(AIMessage(content=response))
+
+            with st.chat_message("AI"):
+                st.info(response)
+    else:
+        st.warning("No documents have been uploaded by the teacher yet.")
+
+# Main function to control the flow
+def main():
+    handle_login()
+
+    # Show appropriate dashboard based on role
+    if st.session_state.logged_in:
+        if st.session_state.role == "teacher":
+            teacher_dashboard()
+        elif st.session_state.role == "student":
+            student_dashboard()
+
+if __name__ == "__main__":
+    main()
