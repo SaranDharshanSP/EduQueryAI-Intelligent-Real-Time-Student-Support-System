@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Upload Page</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1><i class="fas fa-upload"></i> Upload PDFs</h1>
+    </header>
+    <main>
+      <form id="uploadForm" class="upload-form">
+        <label for="pdfFiles" class="file-label">
+          <i class="fas fa-file-pdf"></i> Select PDF Files
+        </label>
+        <input type="file" id="pdfFiles" multiple accept="application/pdf" hidden>
+        <button type="button" id="uploadBtn" class="upload-button">
+          <i class="fas fa-cloud-upload-alt"></i> Upload Files
+        </button>
+      </form>
+      <div id="fileList" class="file-list"></div>
+      <button id="dashboardBtn" class="dashboard-button">
+        <i class="fas fa-arrow-right"></i> Go to Dashboard
+      </button>
+    </main>
+  </div>
+  <script src="scripts.js"></script>
+</body>
+</html>
