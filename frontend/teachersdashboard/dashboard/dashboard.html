@@ -27,6 +27,11 @@
             font-size: 0.9rem;
             margin-left: 10px;
         }
+        .badge-status {
+            font-size: 0.8rem;
+            background-color: #6c757d;
+            margin-left: 10px;
+        }
         table {
             margin: 0 auto;
             width: 90%;
@@ -71,7 +76,8 @@
             <div class="col-md-6 border-end">
                 <div class="section-title text-success">
                     True Questions 
-                    <span class="badge bg-success">2</span>
+                    <span class="badge bg-success total-true">2</span>
+                    <span class="badge badge-status answered-true">0 answered</span>
                 </div>
                 <table class="table table-bordered table-striped">
                     <thead>
@@ -86,21 +92,21 @@
                             <td>What is AI?</td>
                             <td>Artificial Intelligence</td>
                             <td class="text-center">
-                                <input type="checkbox" class="custom-checkbox" checked>
+                                <input type="checkbox" class="custom-checkbox true-checkbox" checked>
                             </td>
                         </tr>
                         <tr>
                             <td>Define Machine Learning?</td>
                             <td>A subset of AI</td>
                             <td class="text-center">
-                                <input type="checkbox" class="custom-checkbox">
+                                <input type="checkbox" class="custom-checkbox true-checkbox">
                             </td>
                         </tr>
                     </tbody>
                 </table>
                 <!-- True Button -->
                 <div class="button-section">
-                    <button class="btn btn-success btn-view">View Full True Questions Table</button>
+                    <a href="../rag_answering/index.html" class="btn btn-success btn-view">View Full True Questions Table</a>
                 </div>
             </div>
 
@@ -108,7 +114,8 @@
             <div class="col-md-6">
                 <div class="section-title text-danger">
                     False Questions 
-                    <span class="badge bg-danger">2</span>
+                    <span class="badge bg-danger total-false">2</span>
+                    <span class="badge badge-status answered-false">0 answered</span>
                 </div>
                 <table class="table table-bordered table-striped">
                     <thead>
@@ -123,21 +130,21 @@
                             <td>Is the earth flat?</td>
                             <td>No</td>
                             <td class="text-center">
-                                <input type="checkbox" class="custom-checkbox" checked>
+                                <input type="checkbox" class="custom-checkbox false-checkbox" checked>
                             </td>
                         </tr>
                         <tr>
                             <td>Can AI replace humans?</td>
                             <td>Not completely</td>
                             <td class="text-center">
-                                <input type="checkbox" class="custom-checkbox">
+                                <input type="checkbox" class="custom-checkbox false-checkbox">
                             </td>
                         </tr>
                     </tbody>
                 </table>
                 <!-- False Button -->
                 <div class="button-section">
-                    <button class="btn btn-danger btn-view">View Full False Questions Table</button>
+                    <a href="../teacher_answering/index.html" class="btn btn-danger btn-view">View Full False Questions Table</a>
                 </div>
             </div>
         </div>
@@ -146,8 +153,29 @@
             <p>Check/uncheck the boxes to mark the question status. Click "View Full Table" for detailed views.</p>
         </div>
     </div>
-<div></div>
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Function to update the counts of answered questions
+        function updateCounts() {
+            // Count checked checkboxes for True Questions
+            const trueCheckboxes = document.querySelectorAll('.true-checkbox');
+            const answeredTrue = [...trueCheckboxes].filter(cb => cb.checked).length;
+            document.querySelector('.answered-true').textContent = `${answeredTrue} answered`;
+
+            // Count checked checkboxes for False Questions
+            const falseCheckboxes = document.querySelectorAll('.false-checkbox');
+            const answeredFalse = [...falseCheckboxes].filter(cb => cb.checked).length;
+            document.querySelector('.answered-false').textContent = `${answeredFalse} answered`;
+        }
+
+        // Initialize counts on page load
+        updateCounts();
+
+        // Add event listeners to checkboxes to update counts dynamically
+        document.querySelectorAll('.custom-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateCounts);
+        });
+    </script>
 </body>
 </html>
