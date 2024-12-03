@@ -8,6 +8,56 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from dotenv import load_dotenv
+import psycopg2
+from datetime import datetime
+
+
+# PostgreSQL database connection
+def connect_db():
+    conn = psycopg2.connect(
+        host="localhost", 
+        database="eduquery", 
+        user="postgres", 
+        password="Sa@251004"
+    )
+    return conn
+
+# Function to create the questions table if it doesn't exist
+def create_table():
+    """Create the questions table if it does not exist."""
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS questions (
+            id SERIAL PRIMARY KEY,
+            question TEXT NOT NULL,
+            dissimilar BOOLEAN NOT NULL,
+            submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    ''')
+    conn.commit()
+    conn.close()
+
+# Function to insert a new question with dissimilar status into the database
+def insert_question(question, dissimilar):
+    """Insert a new student question into the database with dissimilar status."""
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO questions (question, dissimilar) VALUES (%s, %s) RETURNING id;", (question, dissimilar))
+    question_id = cursor.fetchone()[0]
+    conn.commit()
+    conn.close()
+    return question_id
+
+# Function to retrieve all questions and their dissimilar status
+def get_questions():
+    """Retrieve all questions and their dissimilar statuses from the database."""
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, question, dissimilar, submitted_at FROM questions;")
+    questions = cursor.fetchall()
+    conn.close()
+    return questions
 
 
 load_dotenv()
@@ -61,7 +111,7 @@ def get_conversational_chain(vectorstore):
     System: You are a highly knowledgeable tutor, specializing in explaining the content of specific documents provided by the user. Your task is to help the user understand and learn from the documents they have uploaded, strictly using only the information provided therein. Here are your guidelines:
 
     - Use only information from the user's uploaded PDF documents to answer questions.
-    - If the question relates to information not covered in the PDFs, politely inform the user that the required information is not available in the uploaded documents.
+    - If the question relates to information not covered in the PDFs, politely inform the user that "This question will be answered by your teacher".
     - Cite specific sections or pages from the PDFs when relevant to provide detailed and precise answers.
     - Encourage the user to explore related concepts within the PDFs to enhance understanding.
     - Maintain a professional tone and focus on educational support.
@@ -89,8 +139,7 @@ def get_conversational_chain(vectorstore):
     chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
         retriever=retriever,
-        combine_docs_chain_kwargs={'prompt': prompt},
-        verbose=True
+        combine_docs_chain_kwargs={'prompt': prompt}
     )
     return chain
 
@@ -189,7 +238,7 @@ def student_dashboard():
 
         # User input for asking questions
         user_question = st.chat_input("Ask a question related to the PDFs")
-
+        question = user_question
         if user_question:
             st.session_state.chat_history.append(HumanMessage(content=user_question))
             with st.chat_message("Human"):
@@ -198,6 +247,11 @@ def student_dashboard():
             # Get the AI's response based on the uploaded PDFs
             response = chain.run(question=user_question,context=vector_store, chat_history=st.session_state.chat_history)
             st.session_state.chat_history.append(AIMessage(content=response))
+            if 'your teacher' in response.lower():
+                dissimilar_input = False
+            else: dissimilar_input = True
+            insert_question(question, dissimilar_input)
+            print(question,dissimilar_input)
 
             with st.chat_message("AI"):
                 st.info(response)
@@ -206,6 +260,7 @@ def student_dashboard():
 
 # Main function to control the flow
 def main():
+    create_table()
     handle_login()
 
     # Show appropriate dashboard based on role
@@ -214,6 +269,11 @@ def main():
             teacher_dashboard()
         elif st.session_state.role == "student":
             student_dashboard()
+    
 
+
+
+
+    # Insert the question into the database
 if __name__ == "__main__":
     main()
