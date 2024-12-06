@@ -85,11 +85,35 @@ def clear_all_entries():
     conn.commit()  # Commit the transaction
     conn.close()
 
+
+def calculate_similarities(questions_csv, embeddings_csv, questions_mongo, embeddings_mongo):
+    similarities = cosine_similarity(embeddings_csv, embeddings_mongo)
+    dissimilarities = 1 - similarities
+    results = []
+
+    for i, question_csv in enumerate(questions_csv):
+        for j, question_mongo in enumerate(questions_mongo):
+            dissimilarity = round(dissimilarities[i, j], 2)  # Round to 2 decimal places
+            rag_answer = "True" if 0.0 <= dissimilarity <= 0.35 else "False"
+            results.append({
+                "question_from_csv": question_csv,
+                "question_from_mongo": question_mongo,
+                "dissimilarity": dissimilarity,  # Rounded value
+                "rag_answer": rag_answer
+            })
+
+    results_df = pd.DataFrame(results)
+    grouped_and_sorted = (
+        results_df.groupby("question_from_csv", group_keys=False)
+        .apply(lambda group: group.sort_values(by="dissimilarity", ascending=True).head(3))
+    )
+    return grouped_and_sorted.to_dict(orient="records")
+
 load_dotenv()
 embeddings = OpenAIEmbeddings()
 # Directory for storing PDFs and FAISS index
-UPLOAD_FOLDER = 'teacher_pdfs'
-INDEX_PATH = "faiss_index"
+UPLOAD_FOLDER = './teacher_pdfs'
+INDEX_PATH = "./faiss_index"
 
 # Ensure the upload folder exists
 if not os.path.exists(UPLOAD_FOLDER):
@@ -292,7 +316,7 @@ def student_dashboard():
             st.session_state.chat_history.append(HumanMessage(content=user_question))
             with st.chat_message("Human"):
                 st.markdown(user_question)
-
+            #calculate_similarities(user_question) 
             # Get the AI's response based on the uploaded PDFs
             response = chain.run(question=user_question,context=vector_store, chat_history=st.session_state.chat_history)
             st.session_state.chat_history.append(AIMessage(content=response))
