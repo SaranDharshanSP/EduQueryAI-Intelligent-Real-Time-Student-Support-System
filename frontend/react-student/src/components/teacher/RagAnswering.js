@@ -1,7 +1,36 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "./Navbar";
 
 const RagAnswering = () => {
+  const [answers, setAnswers] = useState([]);  // State to hold the answers
+  const [loading, setLoading] = useState(true);  // Loading state
+
+  useEffect(() => {
+    const fetchAnswers = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/answers");
+        const data = await response.json();
+  
+        // Log and check the data type
+        console.log("Fetched data:", data);
+  
+        if (Array.isArray(data)) {
+          setAnswers(data);
+        } else {
+          console.error("API response is not an array", data);
+          setAnswers([]);  // Set empty array to avoid map errors
+        }
+      } catch (error) {
+        console.error("Error fetching answers:", error);
+        setAnswers([]);  // In case of error, set an empty array
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    fetchAnswers();
+  }, []);
+  
   return (
     <div>
       <Navbar /> {/* Include Navbar */}
@@ -9,23 +38,28 @@ const RagAnswering = () => {
         <h2 className="section-title text-center" style={styles.title}>
           Rag Answering
         </h2>
-        <table className="table table-striped" style={styles.table}>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Question</th>
-              <th>Answer</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>1</td>
-              <td>What is Rag Answering?</td>
-              <td>Rag answering is a method of response...</td>
-            </tr>
-            {/* Add more rows as necessary */}
-          </tbody>
-        </table>
+        {loading ? (
+          <p>Loading...</p>
+        ) : (
+          <table className="table table-striped" style={styles.table}>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Question</th>
+                <th>Answer</th>
+              </tr>
+            </thead>
+            <tbody>
+              {answers.map((answer, index) => (
+                <tr key={answer.id}>
+                  <td>{index + 1}</td>
+                  <td>{answer.question}</td>
+                  <td>{answer.answer}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

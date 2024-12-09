@@ -1,7 +1,62 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "./Navbar";
 
 const TeacherAnswering = () => {
+  const [data, setData] = useState([]);
+  const [teacherAnswer, setTeacherAnswer] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch data from the Flask backend
+  useEffect(() => {
+    fetch("http://localhost:5000/api/teacher-answering")
+      .then((response) => response.json())
+      .then((data) => {
+        setData(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        setError("Error fetching data");
+        setLoading(false);
+      });
+  }, []);
+
+  // Handle answer submission
+  const handleAnswerSubmit = (question, index) => {
+    const answerData = { teacher_answer: teacherAnswer };
+
+    fetch(`http://localhost:5000/api/teacher-answering/${index}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(answerData),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data.message);
+        alert("Answer updated successfully!");
+        setTeacherAnswer("");  // Clear the answer input
+
+        // Update the status of the current question to "answered"
+        setData((prevData) => {
+          return prevData.map((item, idx) => {
+            if (idx === index) {
+              return { ...item, status: "answered" };
+            }
+            return item;
+          });
+        });
+      })
+      .catch((error) => {
+        console.error("Error updating answer:", error);
+        alert("Failed to update the answer.");
+      });
+  };
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>{error}</p>;
+
   return (
     <div>
       <Navbar /> {/* Include Navbar */}
@@ -14,16 +69,33 @@ const TeacherAnswering = () => {
             <tr>
               <th>#</th>
               <th>Question</th>
-              <th>Answer</th>
+              <th>Teacher Answer</th>
+              <th>Status</th> {/* Add the status column */}
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>1</td>
-              <td>What is Teacher Answering?</td>
-              <td>Teacher answering is a method...</td>
-            </tr>
-            {/* Add more rows as necessary */}
+            {data.map((item, index) => (
+              <tr key={index}>
+                <td>{index + 1}</td>
+                <td>{item.user_message}</td>
+                <td>
+                  <textarea
+                    value={teacherAnswer}
+                    onChange={(e) => setTeacherAnswer(e.target.value)}
+                    placeholder="Write your answer here..."
+                    rows="4"
+                    cols="50"
+                  />
+                  <button
+                    onClick={() => handleAnswerSubmit(item.user_message, index)}
+                    style={styles.button}
+                  >
+                    Submit Answer
+                  </button>
+                </td>
+                <td>{item.status || "Not Answered"}</td> {/* Display the status */}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -44,6 +116,15 @@ const styles = {
   table: {
     backgroundColor: "white",
     boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+  },
+  button: {
+    marginTop: "10px",
+    padding: "8px 16px",
+    backgroundColor: "#721c24",
+    color: "white",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
   },
 };
 
