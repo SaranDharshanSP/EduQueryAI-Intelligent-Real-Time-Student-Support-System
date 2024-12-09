@@ -22,10 +22,10 @@ const TeacherAnswering = () => {
   }, []);
 
   // Handle answer submission
-  const handleAnswerSubmit = (question, index) => {
+  const handleAnswerSubmit = (question_id) => {
     const answerData = { teacher_answer: teacherAnswer };
 
-    fetch(`http://localhost:5000/api/teacher-answering/${index}`, {
+    fetch(`http://localhost:5000/api/teacher-answering/${question_id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -40,8 +40,8 @@ const TeacherAnswering = () => {
 
         // Update the status of the current question to "answered"
         setData((prevData) => {
-          return prevData.map((item, idx) => {
-            if (idx === index) {
+          return prevData.map((item) => {
+            if (item._id === question_id) {
               return { ...item, status: "answered" };
             }
             return item;
@@ -70,12 +70,12 @@ const TeacherAnswering = () => {
               <th>#</th>
               <th>Question</th>
               <th>Teacher Answer</th>
-              <th>Status</th> {/* Add the status column */}
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
             {data.map((item, index) => (
-              <tr key={index}>
+              <tr key={item._id}>
                 <td>{index + 1}</td>
                 <td>{item.user_message}</td>
                 <td>
@@ -87,13 +87,13 @@ const TeacherAnswering = () => {
                     cols="50"
                   />
                   <button
-                    onClick={() => handleAnswerSubmit(item.user_message, index)}
+                    onClick={() => handleAnswerSubmit(item._id)} // Pass the _id instead of index
                     style={styles.button}
                   >
                     Submit Answer
                   </button>
                 </td>
-                <td>{item.status || "Not Answered"}</td> {/* Display the status */}
+                <td>{item.status || "Not Answered"}</td>
               </tr>
             ))}
           </tbody>

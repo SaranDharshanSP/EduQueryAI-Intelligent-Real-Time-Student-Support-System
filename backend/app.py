@@ -133,8 +133,16 @@ def send_message():
     })
 
 # Route for the teacher to provide an answer to a pending question
+from bson import ObjectId
+
 @app.route('/api/teacher-answering/<question_id>', methods=['PUT'])
 def teacher_answer(question_id):
+    # Convert the string question_id to ObjectId
+    try:
+        question_id = ObjectId(question_id)
+    except Exception as e:
+        return jsonify({"error": "Invalid question ID"}), 400
+
     # Get the teacher's answer from the request body
     teacher_answer = request.json.get('teacher_answer')
     if not teacher_answer:
@@ -157,10 +165,20 @@ def teacher_answer(question_id):
 
     return jsonify({"message": "Answer updated and sent to student", "bot_response": bot_response}), 200
 
-# Route to get the teacher answering history
+
+from flask import jsonify
+from bson import ObjectId
+
 @app.route('/api/teacher-answering', methods=['GET'])
 def get_teacher_answering():
-    data = list(teacher_answering_collection.find({"status": "pending"}, {"_id": 0}))  # Fetch only pending questions
+    # Fetch only pending questions
+    data = list(teacher_answering_collection.find({"status": "pending"}))  # No field projection here to fetch all fields
+
+    # Convert ObjectId to string for serialization
+    for item in data:
+        item['_id'] = str(item['_id'])  # Convert the ObjectId to string
+
+    print(data)  # Log the data to verify structure
     return jsonify(data)
 
 # Registration Route
